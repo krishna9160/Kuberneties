@@ -657,3 +657,120 @@ SUMMARY:
 - nodeSelector binds a Pod to nodes with matching labels
 - You must label nodes manually
 - Simple and effective for basic scheduling
+
+KUBERNETES SERVICES – NOTES
+===========================
+
+Kubernetes Services provide stable networking and consistent access to Pods.
+Pods are temporary and their IPs change frequently, so Services give a fixed
+endpoint to reach applications.
+
+Kubernetes has 3 main Service types:
+1. ClusterIP
+2. NodePort
+3. LoadBalancer
+
+------------------------------------------------------------
+1. CLUSTERIP SERVICE
+------------------------------------------------------------
+• Default Service type in Kubernetes.
+• Exposes the application ONLY inside the cluster.
+• Not accessible from outside the cluster.
+• Used for internal communication between Pods or microservices.
+• Provides a stable internal IP.
+
+Use Cases:
+– Backend services
+– Database services
+– Internal APIs
+
+Why ClusterIP?
+– Pods have dynamic IPs; ClusterIP gives a permanent internal endpoint.
+
+Example:
+type: ClusterIP
+
+------------------------------------------------------------
+2. NODEPORT SERVICE
+------------------------------------------------------------
+• Exposes the application externally using <NodeIP>:<NodePort>.
+• NodePort range: 30000–32767.
+• All Nodes expose the same port, making it reachable externally.
+• Used for testing or small environments without a LoadBalancer.
+
+Use Cases:
+– Access app from outside without Ingress
+– Development and testing
+
+Why NodePort?
+– Provides simple external access without cloud dependencies.
+
+Example:
+type: NodePort
+nodePort: 30080
+
+------------------------------------------------------------
+3. LOADBALANCER SERVICE
+------------------------------------------------------------
+• Exposes the application to the internet with a PUBLIC IP.
+• Cloud provider (AWS, Azure, GCP) creates a load balancer.
+• Distributes traffic across multiple Nodes and Pods.
+• Best for production-grade services.
+
+Use Cases:
+– Web applications
+– Public APIs
+– Production workloads
+
+Why LoadBalancer?
+– Provides external access + traffic balancing + high availability.
+
+Example:
+type: LoadBalancer
+
+------------------------------------------------------------
+SUMMARY / COMPARISON
+------------------------------------------------------------
+ClusterIP:
+- Internal-only
+- Default service
+- For communication inside the cluster
+
+NodePort:
+- Accessible using <NodeIP>:NodePort
+- Simple external access
+- Good for testing environments
+
+LoadBalancer:
+- Provides public IP and cloud load balancer
+- Best for production
+- Distributes traffic to Nodes and Pods
+
+------------------------------------------------------------
+WHY WE NEED SERVICES IN KUBERNETES
+------------------------------------------------------------
+• Pods are temporary; their IPs change.
+• Services give a stable, permanent network endpoint.
+• Enable internal and external access.
+• Provide load balancing across multiple Pods.
+• Enable service discovery using DNS names instead of IP addresses.
+
+BASIC CODE:-
+---------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-name
+spec:
+  type: ServiceType     # ClusterIP / NodePort / LoadBalancer
+  selector:
+    app: app-label      # Match with pod labels
+  ports:
+    - protocol: TCP
+      port: 80          # Service Port
+      targetPort: 8080  # Pod/container port
+      # nodePort: 30080 # Only for NodePort or LoadBalancer
+
+to add state file to s3:-
+export KOPS_STATE_STORE=s3://<Bucket_name>
+
