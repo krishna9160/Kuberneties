@@ -1,0 +1,330 @@
+🌟 Kubernetes – Simple Notes
+🚀 1. What is Kubernetes? (Intro)
+Kubernetes (K8s) is an open‑source container orchestration platform that automatically manages:
+Deployment
+Scaling
+Load balancing
+Self-healing
+Updates of containerized applications
+
+Created by Google, now maintained by CNCF.
+👉 Think of Kubernetes as the “operating system” for containerized apps running in a cluster.
+
+❓ 2. Why Kubernetes? (Why do we use it?)
+Kubernetes solves real problems in modern cloud apps:
+Scalability
+Automatically increases/decreases number of containers based on load.
+
+High Availability
+Restarts failed containers → ensures app stays up.
+
+Load Balancing
+Distributes traffic to healthy containers.
+
+Rolling Updates
+Deploy new versions without downtime.
+
+Resource Optimization
+Efficiently uses CPU/RAM across nodes.
+
+Portable
+Runs on AWS, Azure, GCP, On‑prem, anywhere.
+👉 Main Purpose: Run containers at scale automatically and reliably.
+
+🏗️ 3. Kubernetes Architecture (Objects & Their Role)
+Kubernetes has a Master (Control Plane) and Worker Nodes.
+⭐ Control Plane Components (Brain of K8s)
+1. APIServer
+Entry point for all K8s commands (kubectl).
+Validates and processes requests.
+
+2. etcd
+Key‑value database.
+Stores entire cluster state.
+
+3. Scheduler
+Decides which node a pod should run on.
+
+4. Controller Manager
+Ensures the actual state matches desired state.
+Manages:
+ReplicaSets
+Node health
+Endpoints
+Jobs etc.
+
+
+
+
+🖥️ Worker Node Components (Where Apps Run)
+1. Kubelet
+Agent on each node.
+Starts/stops containers.
+
+2. Kube-Proxy
+Manages networking & load balancing inside cluster.
+
+3. Container Runtime
+Runs containers.
+Example: Docker, containerd, CRI‑O.
+
+
+📦 4. Important Kubernetes Objects (Simple Explanation)
+1. Pod
+Smallest deployable unit.
+One or more containers working together.
+
+2. Deployment
+Manages Pods.
+Supports rolling updates and scaling.
+
+3. ReplicaSet
+Ensures a fixed number of Pod replicas are always running.
+
+4. Service
+Used for stable networking.
+Types:
+ClusterIP → internal communication
+NodePort → expose service on each node
+LoadBalancer → expose service to the internet
+
+5. Namespace
+Logical separation inside cluster.
+
+6. ConfigMap
+Stores non‑secret configuration (env vars, properties).
+
+7. Secret
+Stores sensitive data (passwords, tokens).
+
+8. Volume / PersistentVolume / PVC
+Storage system for Pods.
+
+
+🎯 5. How Kubernetes Works (Simple Flow)
+You submit a YAML → kubectl apply -f file.yaml
+API server accepts request
+Scheduler picks a node
+Kubelet runs Pod on that node
+Controller ensures desired state
+Service exposes it for access
+
+✔️ 6. One-Line Summary:-
+Kubernetes is a powerful platform that automatically runs, manages, scales, and heals containerized applications across multiple machines.
+
+
+WHAT IS A KUBERNETES CLUSTER?
+A Kubernetes cluster is a group of machines (nodes) that work together to run containerized applications.
+
+It has two parts:
+1. Control Plane (Master Nodes)
+   - Makes decisions about the cluster (scheduling, scaling, monitoring).
+
+2. Worker Nodes
+   - Run the actual application pods.
+
+Cluster = Control Plane + Worker Nodes
+
+
+TYPES OF KUBERNETES CLUSTERS:-
+
+1. SELF-MANAGED KUBERNETES CLUSTER
+(You install, configure, secure, and maintain everything)
+
+Examples:
+- kubeadm
+- Bare-metal clusters
+- Kubespray
+- kops
+
+Advantages:
+- Full control over configuration
+- Flexible customization
+- Cost efficient on bare-metal
+- Good for learning and on‑prem use cases
+
+Disadvantages:
+- Harder to set up
+- You manage upgrades, security patches
+- Requires strong DevOps/SRE skills
+
+Used When:
+- On-premise data centers
+- Custom networking/storage needs
+- Enterprises needing full control
+
+
+2. CLOUD-MANAGED (MANAGED KUBERNETES) CLUSTER
+(Cloud provider manages the control plane)
+
+Examples:
+- Amazon EKS
+- Azure AKS
+- Google GKE
+- Oracle OKE
+- DigitalOcean Kubernetes
+- IBM Cloud Kubernetes
+
+Advantages:
+- Control plane managed by cloud (easy)
+- Automatic upgrades and patches
+- High availability built-in
+- Integrates with cloud networking, storage, IAM
+
+Disadvantages:
+- Higher cost
+- Less control over master components
+- Cloud vendor lock-in
+
+Used When:
+- Production workloads
+- Startups and enterprises
+- When simplicity and reliability is required
+
+
+SELF-MANAGED VS CLOUD-MANAGED (COMPARISON)
+
+Setup              | Self-Managed: Manual (kubeadm/kops) | Cloud-Managed: Automatic
+Control Plane      | You manage                          | Cloud provider manages
+Upgrades           | Manual                               | Automatic
+Cost               | Lower                                | Higher
+Flexibility        | High                                 | Medium
+Skill Needed       | High                                 | Low-Medium
+Best Use Case      | On-prem/custom workloads             | Production/cloud-native
+
+
+TYPES OF CLOUD KUBERNETES MODELS
+
+1. Fully Managed Kubernetes
+   (EKS, AKS, GKE)
+   Cloud manages:
+   - Control plane
+   - Networking
+   - Some security
+   - Scaling
+
+2. Hosted Kubernetes (Older Model)
+   Examples:
+   - Older GKE versions
+   - Rancher managed clusters
+
+3. Hybrid Kubernetes (On-prem + Cloud)
+   Examples:
+   - EKS Anywhere
+   - GKE On-Prem
+   - Azure Arc Kubernetes
+
+Summary:
+- Cluster = Control Plane + Worker Nodes
+- Self-managed = Full control, more effort
+- Cloud-managed = Easy, production-ready
+- Cloud options = EKS, AKS, GKE
+- Hybrid = Mix of on-prem and cloud
+
+
+WHAT IS kubectl?
+kubectl is the command-line tool used to interact with the Kubernetes cluster.
+
+You use kubectl to:
+- Deploy applications
+- Check cluster resources
+- Inspect logs
+- Scale applications
+- Debug issues
+- Manage cluster objects (Pods, Deployments, Services, etc.)
+
+kubectl communicates with the Kubernetes API Server.
+
+
+BASIC KUBECTL COMMANDS (MOST IMPORTANT)
+
+1. Cluster Information
+----------------------
+kubectl version
+kubectl cluster-info
+kubectl get nodes
+
+
+2. List Resources
+------------------
+kubectl get pods
+kubectl get pods -o wide
+kubectl get deployments
+kubectl get services
+kubectl get namespaces
+
+List everything:
+kubectl get all
+
+
+3. Describe Resources (Detailed Info)
+--------------------------------------
+kubectl describe pod <pod-name>
+kubectl describe deployment <deployment-name>
+kubectl describe node <node-name>
+
+
+4. Create / Apply YAML
+------------------------
+kubectl apply -f <file.yaml>
+kubectl create -f <file.yaml>
+
+Dry run (no changes made):
+kubectl apply -f <file.yaml> --dry-run=client
+
+
+5. Delete Resources
+--------------------
+kubectl delete pod <pod-name>
+kubectl delete deployment <deployment-name>
+kubectl delete -f <file.yaml>
+
+
+6. Logs and Debugging
+----------------------
+View logs:
+kubectl logs <pod-name>
+
+Logs for a specific container:
+kubectl logs <pod-name> -c <container-name>
+
+Exec into pod (like SSH):
+kubectl exec -it <pod-name> -- sh
+kubectl exec -it <pod-name> -- bash
+
+
+7. Scale and Update
+----------------------
+Scale deployment:
+kubectl scale deployment <name> --replicas=3
+
+Update image in deployment:
+kubectl set image deployment/<name> <container-name>=<new-image>
+
+
+8. Namespaces
+---------------
+kubectl get ns
+kubectl create ns <name>
+
+Run command in specific namespace:
+kubectl get pods -n <namespace>
+
+Change default namespace:
+kubectl config set-context --current --namespace=<ns>
+
+
+9. Config and Context
+-----------------------
+kubectl config view
+kubectl config get-contexts
+kubectl config use-context <context-name>
+
+
+10. Apply Imperative Commands (Shortcut)
+-----------------------------------------
+Run a pod quickly:
+kubectl run mypod --image=nginx
+
+Expose pod as service:
+kubectl expose pod mypod --port=80 --type=NodePort
