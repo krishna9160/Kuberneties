@@ -329,6 +329,120 @@ kubectl run mypod --image=nginx
 Expose pod as service:
 kubectl expose pod mypod --port=80 --type=NodePort
 
+KUBERNETES: IMPERATIVE VS DECLARATIVE APPROACH (CLEAN NOTES)
+
+WHAT IS IMPERATIVE APPROACH?
+Imperative approach means:
+“You tell Kubernetes EXACTLY what to do, step by step.”
+
+You run kubectl commands directly to create/update/delete resources.
+
+Examples:
+- kubectl run
+- kubectl create
+- kubectl delete
+- kubectl expose
+- kubectl scale
+
+FEATURES OF IMPERATIVE:
+- Quick and easy
+- Good for learning and testing
+- No YAML needed
+- Not ideal for production (no version control)
+
+COMMON IMPERATIVE COMMANDS:
+----------------------------------
+Create a pod:
+kubectl run mypod --image=nginx
+
+Create a deployment:
+kubectl create deployment mydep --image=nginx
+
+Expose a deployment as a service:
+kubectl expose deployment mydep --port=80 --type=NodePort
+
+Scale a deployment:
+kubectl scale deployment mydep --replicas=3
+
+Delete resources:
+kubectl delete pod mypod
+kubectl delete deployment mydep
+
+
+WHAT IS DECLARATIVE APPROACH?
+Declarative approach means:
+“You define the desired state in a YAML file, and Kubernetes ensures the cluster matches it.”
+
+You use:
+kubectl apply -f <file.yaml>
+
+FEATURES OF DECLARATIVE:
+- Best for production
+- YAML stored in Git (GitOps)
+- Version-controlled
+- Reproducible deployments
+- Kubernetes adjusts automatically to match the desired state
+
+EXAMPLE DECLARATIVE YAML:
+----------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mydep
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+
+Apply YAML:
+kubectl apply -f deployment.yaml
+
+Update YAML and re-apply:
+kubectl apply -f deployment.yaml
+
+Delete using YAML:
+kubectl delete -f deployment.yaml
+
+
+IMPERATIVE VS DECLARATIVE (SUMMARY)
+
+Imperative:
+- Direct commands
+- No YAML required
+- Good for quick tasks
+- Not suitable for large/production setups
+
+Declarative:
+- Uses YAML files
+- Version-controlled deployments
+- Best for production
+- Kubernetes maintains desired state
+
+
+WHEN TO USE WHAT?
+
+Use Imperative When:
+- Testing
+- Learning
+- Creating something quick
+- Temporary resources
+
+Use Declarative When:
+- Production applications
+- CI/CD pipelines
+- GitOps workflows
+- Teams working together
+- Anything that must be tracked and versioned
+
 KUBERNETES LABELS AND SELECTORS (CLEAN NOTES)
 
 WHAT ARE LABELS?
@@ -467,4 +581,79 @@ SUMMARY:
 - Services and Deployments depend on labels/selectors.
 - Set-based selectors allow advanced filtering.
 
+KUBERNETES NODE SELECTOR (CLEAN NOTES)
 
+WHAT IS A NODE SELECTOR?
+A nodeSelector is the simplest way to schedule a Pod onto specific Nodes.
+It tells Kubernetes:
+“Run this Pod ONLY on nodes that have this label.”
+
+NodeSelector uses key-value pairs of node labels.
+
+Example:
+nodeSelector:
+  disktype: ssd
+
+This means: schedule the Pod only on nodes where the node label is disktype=ssd.
+
+
+HOW TO LABEL A NODE:
+--------------------------------
+View nodes:
+kubectl get nodes
+
+Add a label:
+kubectl label node <node-name> disktype=ssd
+
+Check node labels:
+kubectl get nodes --show-labels
+
+
+POD YAML WITH NODE SELECTOR:
+--------------------------------
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+spec:
+  nodeSelector:
+    disktype: ssd
+  containers:
+    - name: c1
+      image: nginx
+
+This Pod will only run on nodes labeled disktype=ssd.
+
+
+WHAT IF NO NODE MATCHES?
+--------------------------------
+If no node has the label defined in nodeSelector:
+- Pod will stay in Pending state
+- Scheduler cannot place it anywhere
+
+
+USE CASES OF NODE SELECTOR:
+--------------------------------
+- Schedule workloads on high-performance nodes
+- Assign certain apps to SSD-based nodes
+- Separate dev / prod workloads
+- GPU nodes for ML workloads
+- Node dedicated for logging, monitoring, etc.
+
+
+LIMITATIONS:
+--------------------------------
+- Very basic scheduling method
+- Exact match only (key=value)
+- No advanced rules (use affinity for complex scheduling)
+
+For advanced scheduling use:
+- nodeAffinity
+- taints & tolerations
+
+
+SUMMARY:
+--------------------------------
+- nodeSelector binds a Pod to nodes with matching labels
+- You must label nodes manually
+- Simple and effective for basic scheduling
