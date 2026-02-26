@@ -328,3 +328,143 @@ kubectl run mypod --image=nginx
 
 Expose pod as service:
 kubectl expose pod mypod --port=80 --type=NodePort
+
+KUBERNETES LABELS AND SELECTORS (CLEAN NOTES)
+
+WHAT ARE LABELS?
+Labels are key-value pairs attached to Kubernetes objects such as:
+- Pods
+- Deployments
+- Services
+- Nodes
+
+Example:
+  labels:
+    app: frontend
+    env: dev
+
+Purpose:
+- Organize resources
+- Filter and group objects
+- Select specific objects using selectors
+- Enable rolling updates, autoscaling, and service discovery
+
+
+LABEL SYNTAX:
+- Key: must match DNS label format (e.g., app, env, tier)
+- Value: free-form string
+
+Examples:
+app: myapp
+env: prod
+tier: backend
+
+
+BASIC LABEL COMMANDS
+
+Add a label:
+kubectl label pod <pod-name> app=frontend
+
+Update/overwrite a label:
+kubectl label pod <pod-name> env=production --overwrite
+
+Delete a label:
+kubectl label pod <pod-name> env-
+
+View labels:
+kubectl get pods --show-labels
+
+Filter using label:
+kubectl get pods -l app=frontend
+
+
+WHAT ARE SELECTORS?
+Selectors are used to filter Kubernetes objects based on labels.
+
+Two types:
+1. Equality-based selectors:
+   - app=frontend
+   - env!=prod
+
+2. Set-based selectors:
+   - env in (dev,qa)
+   - tier notin (cache)
+   - app in (frontend,backend)
+
+
+SELECTOR EXAMPLES:
+
+Get pods with specific label:
+kubectl get pods -l app=frontend
+
+Select pods NOT having a label:
+kubectl get pods -l 'env!=prod'
+
+Select using set-based:
+kubectl get pods -l 'env in (dev,qa)'
+kubectl get pods -l 'tier notin (cache)'
+
+
+LABELS IN YAML (EXAMPLE):
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+  labels:
+    app: frontend
+    env: dev
+spec:
+  containers:
+    - name: c1
+      image: nginx
+
+
+WHERE SELECTORS ARE USED?
+
+1. Deployment:
+spec:
+  selector:
+    matchLabels:
+      app: frontend
+
+2. Service:
+spec:
+  selector:
+    app: frontend
+
+3. ReplicaSet:
+spec:
+  selector:
+    matchLabels:
+      tier: backend
+
+Services use selectors to know:
+- Which pods to send traffic to
+
+Deployments use selectors to know:
+- Which pods they control
+
+
+IMPORTANT SELECTOR COMMANDS:
+
+Get pods using multiple labels:
+kubectl get pods -l 'app=frontend,env=dev'
+
+Get deployments using selector:
+kubectl get deployment -l app=frontend
+
+Delete pods using label:
+kubectl delete pod -l app=frontend
+
+Delete any resource by label:
+kubectl delete all -l app=myapp
+
+
+SUMMARY:
+- Labels = key-value tags on objects.
+- Selectors = filters to find objects.
+- Services and Deployments depend on labels/selectors.
+- Set-based selectors allow advanced filtering.
+
+
