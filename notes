@@ -774,3 +774,128 @@ spec:
 to add state file to s3:-
 export KOPS_STATE_STORE=s3://<Bucket_name>
 
+KUBERNETES RC & RS NOTES
+========================
+
+------------------------------------------------------------
+1. REPLICATIONCONTROLLER (RC)
+------------------------------------------------------------
+Definition:
+- A legacy Kubernetes component that ensures a specified number of pod replicas 
+  are running at any time.
+- If any pod fails, RC creates a new one using its template.
+- RC uses "selector" + "template" to manage pods.
+
+Key Responsibilities:
+- Maintain desired pod count
+- Recreate pods if deleted or fail
+- Ensure pod redundancy (high availability)
+
+Important Fields:
+- replicas: Number of pods required
+- selector: Labels to identify which pods RC manages
+- template: Pod blueprint (same as a Pod manifest)
+
+YAML Structure:
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: my-rc
+spec:
+  replicas: 3
+  selector:
+    app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+
+Limitations of RC:
+- No rolling updates
+- No rollback options
+- No advanced strategies
+- Old Kubernetes component (not recommended now)
+
+MEMORY TRICK:
+RC = selector + template + replicas  
+(Think: RC is SIMPLE but LIMITED)
+
+------------------------------------------------------------
+2. REPLICASET (RS)
+------------------------------------------------------------
+Definition:
+- A newer, advanced version of ReplicationController.
+- Ensures a fixed number of pod replicas, but with more flexible label matching.
+- Used internally by Deployments.
+
+Key Responsibilities:
+- Maintain desired pod count
+- Auto-recreate failed or deleted pods
+- Allow advanced selection via "matchLabels" and "matchExpressions"
+
+Important Fields:
+- replicas: Number of pods
+- selector: Uses matchLabels / matchExpressions
+- template: Defines the pod’s spec
+
+YAML Structure:
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: my-rs
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+
+Advantages of RS over RC:
+- More powerful selectors (matchLabels, matchExpressions)
+- Used by Deployments for rolling updates
+- Better control & stability
+- Preferred by Kubernetes (newer standard)
+
+MEMORY TRICK:
+ReplicaSet = RC + advanced selector  
+RS = RC on steroids
+
+------------------------------------------------------------
+3. RC vs RS (Difference Table)
+------------------------------------------------------------
+FEATURE                   RC                   RS
+------------------------------------------------------------
+API Version            v1                   apps/v1
+Selectors              selector             matchLabels / matchExpressions
+Used By                Legacy               Deployment
+Rolling Updates        No                   Through Deployment
+Recommended?           No                   Yes
+Template Support       Yes                  Yes
+Purpose                Maintain replicas    Maintain replicas (modern way)
+
+------------------------------------------------------------
+4. WHICH ONE SHOULD YOU USE?
+------------------------------------------------------------
+- ReplicationController: Not recommended (legacy)
+- ReplicaSet: Used internally but rarely written manually
+- Deployment: BEST choice (manages RS automatically)
+
+------------------------------------------------------------
+5. SUMMARY
+------------------------------------------------------------
+- RC is old and simple; RS is new and powerful.
+- Both maintain the number of pod replicas.
+- RS uses advanced selectors and supports rolling updates (via Deployment).
+- Always prefer Deployments in real projects.
+
