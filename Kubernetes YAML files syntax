@@ -1,0 +1,268 @@
+KUBERNETES MANIFEST NOTES – EASY MEMORY VERSION
+==============================================
+
+Every Kubernetes YAML has only 4 main sections:
+
+1. apiVersion:
+2. kind:
+3. metadata:
+4. spec:
+
+If you remember these 4, you can write ANY manifest.
+
+------------------------------------------------------------
+1. POD MANIFEST (Basic building block)
+------------------------------------------------------------
+Structure:
+- kind: Pod
+- spec has containers
+
+Template:
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+spec:
+  containers:
+    - name: mycontainer
+      image: nginx
+
+MEMORY TRICK:
+Pod = containers list
+
+------------------------------------------------------------
+2. SERVICE MANIFEST (ClusterIP, NodePort, LoadBalancer)
+------------------------------------------------------------
+Structure:
+- kind: Service
+- spec has: type + ports + selector
+
+Template:
+apiVersion: v1
+kind: Service
+metadata:
+  name: myservice
+spec:
+  type: ClusterIP        # or NodePort / LoadBalancer
+  selector:
+    app: myapp
+  ports:
+    - port: 80
+      targetPort: 8080
+      # nodePort: 30080 (only for NodePort)
+
+MEMORY TRICK:
+Service = ports + selector
+
+------------------------------------------------------------
+3. REPLICATIONCONTROLLER (RC)
+------------------------------------------------------------
+Structure:
+- spec: replicas + selector + template (Pod)
+
+Template:
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: myrc
+spec:
+  replicas: 3
+  selector:
+    app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+
+MEMORY TRICK:
+RC = selector + template
+
+------------------------------------------------------------
+4. REPLICASET (RS)
+------------------------------------------------------------
+Same as RC but:
+- apiVersion = apps/v1
+- selector uses matchLabels
+
+Template:
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: myrs
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+
+MEMORY TRICK:
+ReplicaSet = RC but with matchLabels
+
+------------------------------------------------------------
+5. DEPLOYMENT (Most used in real world)
+------------------------------------------------------------
+Structure:
+- spec: replicas + selector + template (Pod)
+
+Template:
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mydeploy
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+
+MEMORY TRICK:
+Deployment = ReplicaSet + rolling update
+
+------------------------------------------------------------
+6. CONFIGMAP (Stores configuration data)
+------------------------------------------------------------
+Template:
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: myconfig
+data:
+  key1: value1
+  key2: value2
+
+MEMORY TRICK:
+ConfigMap = plain text config
+
+------------------------------------------------------------
+7. SECRET (Stores sensitive data - base64 encoded)
+------------------------------------------------------------
+Template:
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysecret
+type: Opaque
+data:
+  username: dXNlcg==
+  password: cGFzcw==
+
+MEMORY TRICK:
+Secret = base64 values
+
+------------------------------------------------------------
+8. NAMESPACE
+------------------------------------------------------------
+Template:
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mynamespace
+
+MEMORY TRICK:
+Smallest YAML in Kubernetes
+
+------------------------------------------------------------
+9. INGRESS (Entry point for HTTP/HTTPS)
+------------------------------------------------------------
+Template:
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: myingress
+spec:
+  rules:
+    - host: myapp.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: myservice
+                port:
+                  number: 80
+
+MEMORY TRICK:
+Ingress = rules → backend service
+
+------------------------------------------------------------
+10. PERSISTENTVOLUME (PV)
+------------------------------------------------------------
+Template:
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mypv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /data/pv1
+
+MEMORY TRICK:
+PV = actual storage
+
+------------------------------------------------------------
+11. PERSISTENTVOLUMECLAIM (PVC)
+------------------------------------------------------------
+Template:
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mypvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+MEMORY TRICK:
+PVC = request storage
+
+------------------------------------------------------------
+ULTIMATE MEMORY SHORTCUTS
+------------------------------------------------------------
+POD = containers
+SERVICE = ports + selector
+RC = selector + template
+RS = RC (with matchLabels)
+DEPLOYMENT = RS + rolling updates
+CONFIGMAP = plain key-value
+SECRET = base64 key-value
+NAMESPACE = only metadata
+INGRESS = rules + backend service
+PV = defines storage
+PVC = requests storage
+
+------------------------------------------------------------
+GENERAL TEMPLATE FOR ANY MANIFEST
+------------------------------------------------------------
+apiVersion:
+kind:
+metadata:
+  name:
+spec:
+  (other fields based on kind)
