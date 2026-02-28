@@ -1082,3 +1082,182 @@ RS  = RC with better selector (still low level)
 Deployment = RS + rolling update + rollback + scaling + automatic versioning
 
 Deployment is ALWAYS used in real projects.
+
+
+==============================
+KUBERNETES ROLLOUT & HPA NOTES
+==============================
+
+------------------------------------------------------------
+1. ROLLOUT (Deployment Rollout)
+------------------------------------------------------------
+• Rollout is the process of releasing a new version of your application
+  using a Deployment.
+
+• When you change the Deployment (image, replicas, labels, etc.),
+  Kubernetes automatically creates a new ReplicaSet and replaces pods 
+  gradually.
+
+• Rollouts ensure ZERO DOWNTIME updates.
+
+------------------------------------------------------------
+1.1 Rollout Commands
+------------------------------------------------------------
+# Check current rollout status
+kubectl rollout status deploy/<name>
+
+# View rollout history (previous versions)
+kubectl rollout history deploy/<name>
+
+# View details of a specific revision
+kubectl rollout history deploy/<name> --revision=<number>
+
+# Roll back to previous version
+kubectl rollout undo deploy/<name>
+
+# Roll back to a specific version
+kubectl rollout undo deploy/<name> --to-revision=<number>
+
+# Restart rollout (forces re-creation of pods)
+kubectl rollout restart deploy/<name>
+
+------------------------------------------------------------
+1.2 How Rollouts Work Internally
+------------------------------------------------------------
+• Every time pod template changes → a NEW ReplicaSet is created.
+• Deployment scales UP the new RS and scales DOWN the old RS.
+• Old RS is kept with 0 pods for easy rollback.
+• Uses the RollingUpdate strategy by default:
+    - maxSurge: number of extra pods that can be created temporarily
+    - maxUnavailable: number of pods allowed to go down temporarily
+
+------------------------------------------------------------
+1.3 Rollout Strategies
+------------------------------------------------------------
+A) RollingUpdate (default)
+   - Update happens gradually
+   - Zero downtime
+   - Safest in production
+
+B) Recreate
+   - Deletes all old pods first
+   - Then creates new pods
+   - Causes downtime
+
+------------------------------------------------------------
+1.4 Important Rollout Notes
+------------------------------------------------------------
+• Rollout happens ONLY when pod template changes.
+• Updating image triggers a rollout.
+• Updating replicas does NOT create a new revision.
+• Using "kubectl set image" triggers a rollout.
+• Rollback only works if revisionHistoryLimit > 0.
+
+------------------------------------------------------------
+2. HPA (Horizontal Pod Autoscaler)
+------------------------------------------------------------
+• HPA automatically increases or decreases the number of pods in a 
+  Deployment/ReplicaSet based on CPU/Memory/Custom metrics.
+
+• HPA ensures pods scale during high traffic and scale down during low usage.
+
+------------------------------------------------------------
+2.1 Requirements for HPA
+------------------------------------------------------------
+• Metrics Server must be installed.
+• Deployment MUST have CPU requests defined.
+    Example:
+      resources:
+        requests:
+          cpu: 100m
+• HPA uses: Utilization = (currentCPU / requestedCPU) * 100
+
+------------------------------------------------------------
+2.2 HPA Commands
+------------------------------------------------------------
+# Create HPA (new syntax)
+kubectl autoscale deploy <name> --cpu=60% --min=2 --max=8
+
+# View HPA
+kubectl get hpa
+
+# Describe HPA details
+kubectl describe hpa <name>
+
+------------------------------------------------------------
+2.3 HPA YAML (autoscaling/v2)
+------------------------------------------------------------
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: mydeploy-hpa
+spec:
+  minReplicas: 2
+  maxReplicas: 8
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: mydeploy
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+
+------------------------------------------------------------
+2.4 How HPA Works Internally
+------------------------------------------------------------
+• Metrics Server collects metrics from kubelets.
+• HPA checks metrics every 15 seconds.
+• If CPU > target → scale UP pods.
+• If CPU < target → scale DOWN pods.
+• Scaling is smooth and controlled (prevents spikes).
+
+------------------------------------------------------------
+2.5 Testing HPA (CPU Stress Test)
+------------------------------------------------------------
+# Enter pod
+kubectl exec -it <pod> -- sh
+
+# Install stress (Debian-based images)
+apt-get update
+apt-get install -y stress
+
+# Run load
+stress --cpu 4 --timeout 300
+
+OR universal CPU load:
+yes > /dev/null &
+
+------------------------------------------------------------
+2.6 HPA Troubleshooting Tips
+------------------------------------------------------------
+• If "kubectl top pods" does NOT work:
+    → Metrics Server is not working.
+
+• If HPA doesn't scale:
+    → CPU requests missing.
+
+• If using custom tags (latest), node may not pull new image:
+    → Use imagePullPolicy: Always
+
+• If pod loads but HPA doesn't scale:
+    → Make sure stress runs in background (&)
+
+------------------------------------------------------------
+SUMMARY
+------------------------------------------------------------
+ROLLOUT:
+• Manages application updates.
+• Creates new ReplicaSets.
+• Supports rollback & rolling updates.
+• Commands: rollout status, history, undo, restart.
+
+HPA:
+• Automatically scales pods based on CPU/Memory.
+• Needs Metrics Server + CPU requests.
+• Can be created using kubectl autoscale or YAML.
+• Works by monitoring metrics and adjusting pod count.
+
