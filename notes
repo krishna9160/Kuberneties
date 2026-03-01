@@ -1477,6 +1477,15 @@ Apply deployment in a namespace:  kubectl apply -f deploy.yaml -n dev
 View all resources in a namespace:  kubectl get all -n dev
 Switch namespace using KUBECTL CONTEXT:  kubectl config set-context --current --namespace=dev
 
+Kubens:
+USAGE:
+  kubens                    : list the namespaces in the current context
+  kubens <NAME>             : change the active namespace of current context
+  kubens -                  : switch to the previous namespace in this context
+  kubens -c, --current      : show the current namespace
+  kubens -h,--help          : show this message
+  kubens -V,--version       : show version
+
 
 =================================================
 
@@ -1553,3 +1562,5 @@ Avoid namespaces when:
 
 Small cluster
 Only one application exists
+
+
