@@ -1564,3 +1564,182 @@ Small cluster
 Only one application exists
 
 
+KUBERNETES CONFIGMAPS & SECRETS — FULL TEXT NOTES (PLAIN, COPY-FRIENDLY)
+=================================================
+
+WHAT IS A CONFIGMAP?
+================================================= A ConfigMap is a Kubernetes object used to store non-sensitive configuration data such as:
+
+Key-value pairs
+Environment variables
+Configuration files
+Command-line arguments
+ConfigMaps help keep application configuration separate from the container image.
+
+
+=================================================
+
+WHY DO WE USE CONFIGMAPS?
+=================================================
+
+Makes apps portable (no hardcoded values)
+Easy to update configuration
+Same image can run across dev/test/prod
+Centralized configuration management
+
+
+=================================================
+
+WAYS TO CREATE CONFIGMAPS
+=================================================
+-------------------------------------- A) Create from Literal Values --------------------------------------
+Command:  kubectl create configmap myconfig --from-literal=key1=value1 --from-literal=key2=value2
+-------------------------------------- B) Create from a File --------------------------------------
+Example file: app.properties  db_host=localhost  db_port=3306
+Command:  kubectl create configmap app-config --from-file=app.properties
+-------------------------------------- C) Create from a Directory --------------------------------------
+Command:  kubectl create configmap config-dir --from-file=/path/to/config/dir
+-------------------------------------- D) Create Using YAML --------------------------------------
+apiVersion: v1 kind: ConfigMap metadata:  name: myconfig  namespace: dev data:  key1: value1  key2: value2
+Apply:  kubectl apply -f myconfig.yaml
+
+
+=================================================
+
+USING CONFIGMAPS IN DEPLOYMENTS
+=================================================
+-------------------------------------- A) Use as Environment Variables --------------------------------------
+containers:
+
+name: app
+image: nginx  env:
+
+name: DB_HOST
+valueFrom:      configMapKeyRef:        name: myconfig        key: db_host
+
+-------------------------------------- B) Load All Keys as Env Vars --------------------------------------
+containers:
+
+name: app
+image: nginx  envFrom:
+
+configMapRef:
+name: myconfig
+
+-------------------------------------- C) Mount ConfigMap as Files --------------------------------------
+volumes:
+
+name: config-vol
+configMap:    name: myconfig
+
+containers:
+
+name: app
+image: nginx  volumeMounts:
+
+name: config-vol
+mountPath: /etc/config
+
+
+
+=================================================
+
+WHAT IS A SECRET?
+================================================= A Secret in Kubernetes stores sensitive data like:
+
+Passwords
+API tokens
+SSH keys
+TLS certificates
+Secrets are base64 encoded (NOT encrypted by default).
+
+
+=================================================
+
+WHY DO WE USE SECRETS?
+=================================================
+
+Prevent storing passwords in Pod specs
+Restrict access via RBAC
+Keys can be rotated easily
+More secure than ConfigMaps
+
+
+=================================================
+
+WAYS TO CREATE SECRETS
+=================================================
+-------------------------------------- A) Create from Literal Values --------------------------------------
+Command:  kubectl create secret generic mysecret --from-literal=username=admin --from-literal=password=Pass123
+-------------------------------------- B) Create from a File --------------------------------------
+Command:  kubectl create secret generic ssh-key --from-file=id_rsa
+-------------------------------------- C) Create Using YAML --------------------------------------
+Values must be base64 encoded. Encode using:  echo -n "admin" | base64
+YAML: apiVersion: v1 kind: Secret metadata:  name: mysecret  namespace: dev type: Opaque data:  username: YWRtaW4=  password: UGFzczEyMw==
+Apply:  kubectl apply -f mysecret.yaml
+
+
+=================================================
+
+USING SECRETS IN DEPLOYMENTS
+=================================================
+-------------------------------------- A) Use as Environment Variables --------------------------------------
+containers:
+
+name: app
+image: nginx  env:
+
+name: USERNAME
+valueFrom:      secretKeyRef:        name: mysecret        key: username
+
+-------------------------------------- B) Load All Keys as Env Vars --------------------------------------
+containers:
+
+name: app
+image: nginx  envFrom:
+
+secretRef:
+name: mysecret
+
+-------------------------------------- C) Mount Secret as Files --------------------------------------
+volumes:
+
+name: secret-vol
+secret:    secretName: mysecret
+
+containers:
+
+name: app
+image: nginx  volumeMounts:
+
+name: secret-vol
+mountPath: /etc/secret
+
+
+
+=================================================
+
+VIEWING CONFIGMAPS & SECRETS
+=================================================
+Show all ConfigMaps:  kubectl get configmaps
+Show one ConfigMap:  kubectl describe configmap myconfig
+Show all Secrets:  kubectl get secrets
+Show one Secret:  kubectl describe secret mysecret
+Decode Secret Value:  echo "BASE64_VALUE" | base64 --decode
+
+
+=================================================
+
+WHEN TO USE WHAT?
+================================================= Use ConfigMap when storing:
+
+Non-sensitive configuration
+Property files
+Environment variables
+Hostnames, URLs, ports
+Use Secret when storing:
+
+Passwords
+Tokens
+SSH keys
+Certificates
