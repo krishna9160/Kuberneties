@@ -1422,3 +1422,134 @@ DaemonSet:
 Deployment:
 • Stateless apps, flexible scaling, rolling updates.
 • Used for web apps, APIs, microservices.
+
+
+KUBERNETES NAMESPACE - FULL NOTES (PLAIN TEXT)
+=================================================
+
+INTRODUCTION TO NAMESPACES
+================================================= A Kubernetes Namespace is a logical partition inside a Kubernetes cluster. It is used to organize, isolate, and manage groups of resources such as pods, services, deployments, configmaps, secrets, etc.
+Namespaces allow you to divide a single Kubernetes cluster into multiple virtual clusters.
+Key points:
+
+Helps in organizing resources
+Provides isolation between teams/projects/environments
+Supports RBAC (Role-Based Access Control)
+Enables applying Resource Quotas
+
+
+=================================================
+
+WHY NAMESPACES ARE USED
+================================================= Namespaces solve several real‑world problems:
+
+Environment Separationdev, qa, staging, production
+Team Isolationfrontend-team namespace
+backend-team namespace
+Avoid Resource Name ConflictsYou can have nginx service in dev and same name in prod
+Security with RBACGive access only to team-specific namespaces
+Resource ManagementApply CPU & memory limits
+Set limits on number of pods
+Better Multi-TenancyOne cluster for multiple teams/clients
+
+
+=================================================
+
+DEFAULT NAMESPACES IN KUBERNETES
+================================================= Kubernetes automatically creates the following namespaces:
+
+defaultIf you don’t specify a namespace, Kubernetes uses this one.
+kube-systemContains core system components like kube-dns, scheduler, etc.
+kube-publicContains publicly accessible info.
+kube-node-leaseStores heartbeat/lease information for nodes.
+
+
+=================================================
+
+COMMON NAMESPACE COMMANDS
+=================================================
+List all namespaces:  kubectl get namespaces
+Create a namespace:  kubectl create namespace dev
+Delete a namespace:  kubectl delete namespace dev
+Describe a namespace:  kubectl describe namespace dev
+List pods from a namespace:  kubectl get pods -n dev
+Apply deployment in a namespace:  kubectl apply -f deploy.yaml -n dev
+View all resources in a namespace:  kubectl get all -n dev
+Switch namespace using KUBECTL CONTEXT:  kubectl config set-context --current --namespace=dev
+
+
+=================================================
+
+DEPLOYMENT YAML WITH NAMESPACE
+================================================= Below is an example of Deployment using a specific namespace:
+apiVersion: apps/v1 kind: Deployment metadata:  name: nginx-deploy  namespace: dev spec:  replicas: 2  selector:    matchLabels:      app: nginx  template:    metadata:      labels:        app: nginx    spec:      containers:
+
+name: nginx
+image: nginx:latest
+
+
+
+=================================================
+
+RESOURCE QUOTA IN A NAMESPACE
+================================================= Namespaces allow administrators to enforce limits using ResourceQuota.
+Example ResourceQuota YAML:
+apiVersion: v1 kind: ResourceQuota metadata:  name: dev-quota  namespace: dev spec:  hard:    pods: "10"    requests.cpu: "4"    requests.memory: 8Gi    limits.cpu: "6"    limits.memory: 16Gi
+
+
+=================================================
+
+LIMIT RANGES IN NAMESPACE
+================================================= LimitRange helps set default CPU & memory limit per pod/container.
+Example LimitRange:
+apiVersion: v1 kind: LimitRange metadata:  name: dev-limits  namespace: dev spec:  limits:
+
+default:
+cpu: "500m"      memory: "512Mi"    defaultRequest:      cpu: "200m"      memory: "256Mi"    type: Container
+
+
+
+=================================================
+
+RBAC WITH NAMESPACES
+================================================= Namespaces make RBAC easier by restricting user access.
+Example Role (namespace-scoped):
+apiVersion: rbac.authorization.k8s.io/v1 kind: Role metadata:  namespace: dev  name: dev-reader rules:
+
+apiGroups: [""]
+resources: ["pods", "services"]  verbs: ["get", "list", "watch"]
+
+RoleBinding to assign user:
+apiVersion: rbac.authorization.k8s.io/v1 kind: RoleBinding metadata:  name: dev-binding  namespace: dev subjects:
+
+kind: User
+name: vamsi roleRef:  kind: Role  name: dev-reader  apiGroup: rbac.authorization.k8s.io
+
+
+
+=================================================
+
+NETWORKPOLICY WITH NAMESPACES
+================================================= Namespaces allow isolation of network traffic between workloads.
+Example NetworkPolicy blocking external traffic:
+apiVersion: networking.k8s.io/v1 kind: NetworkPolicy metadata:  name: deny-external  namespace: dev spec:  podSelector: {}  policyTypes:
+
+Ingress
+ingress: []
+
+
+
+=================================================
+
+WHEN TO USE NAMESPACES
+================================================= Use namespaces when:
+
+Multiple teams use same cluster
+Multiple environments exist
+RBAC rules are needed
+Need cluster organization
+Need quotas for teams/projects
+Avoid namespaces when:
+
+Small cluster
+Only one application exists
