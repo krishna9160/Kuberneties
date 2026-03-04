@@ -2051,3 +2051,280 @@ ResourceQuota = “How much can this namespace use?”
 LimitRange = “How much can each pod/container use?”
 RoleBinding = “What permissions does user have?”
 ServiceAccount = “User inside namespace”
+
+KUBERNETES VOLUMES — DETAILED PLAIN TEXT NOTES
+In Kubernetes, containers are temporary.
+If a container stops, crashes, or is recreated, all the data inside it is lost.
+Since many applications need data that survives restarts (logs, uploads, database files), Kubernetes provides Volumes.
+A Volume in Kubernetes is a storage directory available to containers inside a Pod.
+Unlike container file systems, a Volume lives longer than individual containers.
+
+WHAT ARE KUBERNETES VOLUMES?
+A Kubernetes Volume is a storage space attached to a Pod that remains available even if containers inside the pod restart.
+Volumes allow containers to:
+
+Share files between each other
+Store data temporarily or permanently
+Survive container restarts
+Use external storage like cloud disks
+
+Volumes are defined at the Pod level, not at the container level.
+Multiple containers inside a Pod can mount the same volume.
+
+TYPES OF VOLUMES IN KUBERNETES
+Kubernetes supports many volume types, but the key ones are:
+
+EmptyDir
+HostPath
+Persistent Volume (PV)
+Persistent Volume Claim (PVC)
+Cloud volumes like AWS EBS, Azure Disk, GCP PD via PV
+
+Let’s go through each one in detail.
+
+
+EMPTYDIR
+
+
+EmptyDir is the simplest temporary storage volume.
+Important behavior:
+
+It is created when the Pod starts running.
+It is deleted when the Pod is deleted.
+It survives container restarts inside the same Pod.
+It is stored on the node's temporary storage (RAM or disk).
+Data is NOT persistent between Pod recreation.
+
+Common uses:
+
+Temporary files
+Caching
+Intermediate computation results
+Sharing data between containers in the same Pod
+
+Data sharing:
+If two containers mount the same EmptyDir volume, whatever one writes is immediately visible to the other.
+EmptyDir volume example:
+
+Container 1 writes to /tmp/shared
+Container 2 sees the same file at /tmp/shared
+
+Pod deletion = EmptyDir deleted.
+
+
+HOSTPATH
+
+
+HostPath mounts a directory from the host node’s filesystem into the Pod.
+For example:
+Host machine path:  /tmp/mydata
+Pod mount path:     /app/data
+HostPath behavior:
+
+Data survives Pod deletion.
+Data remains on the node as long as the node exists.
+If Pod restarts on the same node → data is still present.
+If Pod moves to another node → data is NOT available.
+If the node dies → data is lost.
+
+HostPath is mainly for:
+
+Local testing
+Storing logs on node filesystem
+Simple single‑node clusters
+
+Problem:
+If the pod runs on Node A, data is stored on Node A.
+If the pod restarts on Node B, data will not be there.
+So HostPath is not good for production or multi-node clusters.
+
+
+PERSISTENT VOLUME (PV)
+
+
+A Persistent Volume is storage inside the cluster that is independent of Pods.
+It is similar to a disk available for long-term storage.
+Key points:
+
+Created by administrator or dynamically created via StorageClass.
+Has a lifecycle independent of Pods.
+Stays available even if Pods delete.
+Can be backed by cloud storage like:
+
+AWS EBS
+GCP PD
+Azure Disk
+NFS, Ceph, Cinder, etc.
+
+
+
+PV defines:
+
+Storage size
+Access modes
+Reclaim policy
+Storage backend (EBS, NFS, etc.)
+
+Pod does not directly use PV.
+Instead, Pods use PVC (Persistent Volume Claim).
+
+
+PERSISTENT VOLUME CLAIM (PVC)
+
+
+A PVC is a request for storage by a user (developer).
+PVC describes:
+
+Required size (example: 1Gi)
+Access mode (RWO, ROX, RWX)
+Storage class
+
+Kubernetes finds a PV that:
+
+Has equal or more storage
+Matches access mode
+Matches storage class
+
+If match found → PVC is bound.
+If no match → PVC remains pending.
+Once PVC is bound, Pods can mount it as a volume.
+Pod can restart or move to another node, and data will still remain.
+
+PV + PVC WORKFLOW
+
+Admin creates PV
+User creates PVC
+Kubernetes binds PVC → PV
+Pod mounts PVC
+Pod reads/writes data
+Pod deleted? Data remains in PV
+New Pod using same PVC gets old data
+
+
+AWS EBS VOLUME FACTS
+Since you use Kops on AWS, this is important.
+AWS EBS limitations:
+
+EBS volume must be in the same Availability Zone as the Node.
+EBS volume can attach to only one EC2 instance at a time.
+Good for databases, logs, persistent workloads.
+Data survives:
+
+Pod deletion
+Node restart
+Worker recreation
+
+
+Data does NOT survive:
+
+EBS deletion
+AZ failure (unless snapshots used)
+
+
+
+EBS = ReadWriteOnce
+Meaning:
+Only one Pod on one node can mount the volume.
+
+PV EXAMPLE
+PersistentVolume example that uses AWS EBS:
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+name: pv-1
+spec:
+storageClassName: manual
+capacity:
+storage: 2Gi
+accessModes:
+- ReadWriteOnce
+persistentVolumeReclaimPolicy: Recycle
+awsElasticBlockStore:
+volumeID: vol-0123456789abcdef
+fsType: ext4
+
+PVC EXAMPLE
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+name: pvc-1
+spec:
+storageClassName: manual
+accessModes:
+- ReadWriteOnce
+resources:
+requests:
+storage: 1Gi
+
+USING PVC IN A POD / DEPLOYMENT
+Pod mounts PVC like this:
+volumes:
+
+name: devops
+persistentVolumeClaim:
+claimName: pvc-1
+
+Containers access storage using:
+volumeMounts:
+
+mountPath: "/tmp/data"
+name: devops
+
+
+ACCESS MODES (VERY IMPORTANT)
+These define how many Pods can access PV/PVC at once.
+
+ReadWriteOnce (RWO)
+
+
+Only one Pod can mount volume in read/write mode.
+Most common (EBS supports only this).
+
+
+ReadOnlyMany (ROX)
+
+
+Multiple Pods can read the volume.
+No writes allowed.
+
+
+ReadWriteMany (RWX)
+
+
+Multiple Pods can read and write at same time.
+Not supported by EBS.
+Requires EFS, NFS, CephFS, etc.
+
+
+Execute (rare)
+
+
+Pod can execute files but not read/write.
+
+
+COMPARISON SUMMARY
+EmptyDir:
+
+Temporary
+Lives only while Pod lives
+Good for temporary files
+
+HostPath:
+
+Data stored on node
+Lost if node dies
+Pod must run on same node
+
+PV/PVC:
+
+Permanent
+Survives Pod restart and movement
+Good for production
+Backed by cloud storage
+
+
+CONCLUSION
+Kubernetes Volumes help store data safely beyond the container lifecycle.
+EmptyDir and HostPath are simple but not reliable for production.
+Persistent Volumes with PVC provide strong, reliable, cluster‑wide storage.
+Understanding PV, PVC, and access modes is essential for running real applications such as databases, logging systems, and persistent workloads.
