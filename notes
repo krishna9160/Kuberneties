@@ -1743,3 +1743,114 @@ Passwords
 Tokens
 SSH keys
 Certificates
+
+
+
+Kubernetes RBAC — Plain & Simple Notes
+Below is a very simple plain‑text style explanation of RBAC and a simple workflow. No extra styling, no heavy formatting — just clear, easy notes.
+
+
+What is RBAC in Kubernetes?
+RBAC means Role‑Based Access Control. It controls who can do what inside the Kubernetes cluster. In simple words: it is permission control.
+
+
+Why RBAC?
+
+To restrict access
+To give only required permissions
+To protect the cluster
+To follow least‑privilege rules
+
+
+RBAC Has 4 Main Parts:
+
+RoleDefines permissions in a namespace
+Example: allow user to read pods in "dev" namespace
+ClusterRoleSame as Role but cluster-wide
+Needed for non‑namespaced resources (nodes, PVs, etc.)
+RoleBindingConnects Role to a User/Group/ServiceAccount
+Works only in one namespace
+ClusterRoleBindingConnects ClusterRole to User/Group/ServiceAccount
+Works across entire cluster
+
+
+Simple Example of Role (read pods in dev)
+kind: Role
+metadata:
+  name: pod-reader
+  namespace: dev
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+
+
+Simple RoleBinding Example
+kind: RoleBinding
+metadata:
+  name: read-pods-binding
+  namespace: dev
+subjects:
+- kind: User
+  name: vamsi
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io
+
+
+
+
+How Kubernetes Users Are Created (Simple Explanation)
+Kubernetes does NOT create users inside the cluster. We manually create:
+
+A private key
+A certificate for that user
+Add the user to kubeconfig
+Create a context for that user
+
+
+Steps to Create a User (Simple Notes)
+Step 1: Create private key
+openssl genrsa -out vamsi.key 2048
+
+
+Step 2: Create CSR
+openssl req -new -key vamsi.key -out vamsi.csr -subj "/CN=vamsi/O=dev-team"
+
+
+(CN = username, O = group)
+Step 3: Sign the CSR using Kubernetes CA
+openssl x509 -req -in vamsi.csr \
+  -CA /etc/kubernetes/pki/ca.crt \
+  -CAkey /etc/kubernetes/pki/ca.key \
+  -CAcreateserial -out vamsi.crt -days 365
+
+
+Step 4: Add the user to kubeconfig
+kubectl config set-credentials vamsi \
+  --client-certificate=vamsi.crt \
+  --client-key=vamsi.key
+
+
+Step 5: Create context
+kubectl config set-context vamsi-context \
+  --cluster=kubernetes \
+  --namespace=dev \
+  --user=vamsi
+
+
+Switch to user context
+kubectl config use-context vamsi-context
+
+
+
+
+Simple RBAC Workflow (Very Easy Version)
+
+Create a user (key + certificate)
+Add the user into kubeconfig
+Create a Role (permissions)
+Create a RoleBinding (assign user)
+User switches context
+User gets only the permissions defined in Role
