@@ -1854,3 +1854,200 @@ Create a Role (permissions)
 Create a RoleBinding (assign user)
 User switches context
 User gets only the permissions defined in Role
+
+RESOURCE QUOTA — SIMPLE, DETAILED NOTES (PLAIN TEXT)
+ResourceQuota is a Kubernetes object used to limit how much resources a namespace can use.
+ResourceQuota helps you prevent:
+
+one team using all cluster resources
+one namespace consuming all CPU or memory
+uncontrolled PVC creation
+unlimited pods or services
+misuse of cluster resources
+
+ResourceQuota always works per namespace.
+It cannot be applied cluster-wide.
+
+WHY RESOURCE QUOTA IS USED
+
+To control resource consumption per team/project
+To prevent abuse or misconfiguration
+To ensure fair resource sharing
+To enforce hard limits on CPU, memory, pods, PVCs, services
+To avoid one namespace crashing the entire cluster
+
+
+HOW RESOURCEQUOTA WORKS
+
+You create a ResourceQuota object inside a namespace.
+Kubernetes checks every new object (pod, pvc, service, etc.).
+If the namespace is exceeding the allowed quota → Kubernetes rejects creation.
+
+ResourceQuota + LimitRange usually work together:
+
+ResourceQuota = total allowed resources in namespace
+LimitRange = per pod/per container min-max limits
+
+
+TYPES OF RESOURCES YOU CAN LIMIT
+You can restrict:
+
+
+Compute resources
+
+cpu
+memory
+requests.cpu
+requests.memory
+limits.cpu
+limits.memory
+
+
+
+Object counts
+
+pods
+services
+configmaps
+secrets
+persistentvolumeclaims (PVCs)
+
+
+
+Storage
+
+requests.storage
+storageclass.storage.k8s.io/… (per storage class)
+
+
+
+Hugepages (if enabled)
+
+
+GPU resources (if available)
+
+
+
+SIMPLE EXAMPLE OF RESOURCE QUOTA
+Example: limit namespace to
+
+2 CPU cores
+4 GB memory
+maximum 10 pods
+
+YAML:
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: dev-quota
+  namespace: dev
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: "4Gi"
+    limits.cpu: "2"
+    limits.memory: "4Gi"
+    pods: "10"
+
+Explanation:
+
+total CPU maximum = 2 cores
+total memory maximum = 4Gi
+only 10 pods allowed
+
+
+EXAMPLE: LIMIT OBJECT COUNT
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: object-quota
+  namespace: dev
+spec:
+  hard:
+    services: "5"
+    configmaps: "10"
+    secrets: "20"
+    persistentvolumeclaims: "4"
+
+This restricts how many objects the namespace can create.
+
+EXAMPLE: STORAGE QUOTA
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: storage-quota
+  namespace: dev
+spec:
+  hard:
+    requests.storage: 20Gi
+    standard.storageclass.storage.k8s.io/requests.storage: 10Gi
+
+Meaning:
+
+Total PVC storage allowed = 20Gi
+In storage class "standard", max = 10Gi
+
+
+HOW TO APPLY A RESOURCE QUOTA
+kubectl apply -f quota.yaml
+
+To see all quotas in a namespace:
+kubectl get resourcequota -n dev
+
+To describe and see usage:
+kubectl describe resourcequota dev-quota -n dev
+
+
+HOW RESOURCE QUOTA BLOCKS POD CREATION
+If a developer tries to create a pod requesting 4 CPU,
+but quota only allows 2 CPU in namespace:
+Kubernetes will reject with error:
+pods "mypod" is forbidden:
+exceeds quota: dev-quota,
+requested: cpu=4, used: cpu=1, limited: cpu=2
+
+
+RELATIONSHIP BETWEEN RESOURCE QUOTA AND LIMITRANGE
+ResourceQuota = namespace-level total resources
+LimitRange = per-container or per-pod limits
+Example:
+
+ResourceQuota says: namespace max memory = 4Gi
+LimitRange says: each pod can use max 1Gi
+
+Both work together to enforce balanced use.
+
+COMMON USE CASES
+
+Team environments where each team has its own namespace
+Multi-tenant clusters
+Ensuring small namespaces cannot create massive pods
+Controlling PVC storage usage
+Enforcing fair use on shared clusters
+Preventing accidental “OOM” of cluster due to bad deployments
+
+
+HOW TO CHECK CURRENT USAGE
+kubectl describe quota -n dev
+
+Output shows:
+
+Hard limits (max allowed)
+Used limits (current usage)
+Remaining resources
+
+
+IMPORTANT NOTES
+
+ResourceQuota applies at namespace level only
+ResourceQuota does not directly throttle pods — it only limits creation
+ResourceQuota requires requests and limits to be set on pods
+If a pod has no CPU/memory request, Kubernetes assigns default (limitrange)
+Without LimitRange, quota may force you to explicitly specify CPU/memory in every pod
+
+
+VERY SIMPLE SUMMARY (FOR EASY REMEMBERING)
+ResourceQuota = “How much can this namespace use?”
+LimitRange = “How much can each pod/container use?”
+RoleBinding = “What permissions does user have?”
+ServiceAccount = “User inside namespace”
