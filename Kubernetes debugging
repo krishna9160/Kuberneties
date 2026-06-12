@@ -292,3 +292,563 @@ Remember:
 "Scheduler → Container → Pod → Service → Ingress → Node → Application → Database"
 
 This is the order most production Kubernetes troubleshooting follows and is a strong framework for DevOps interviews.
+
+
+=========================================================
+        KUBERNETES ADVANCED TROUBLESHOOTING NOTES
+=========================================================
+
+These scenarios are commonly encountered in production and
+are frequently asked in DevOps/Kubernetes interviews.
+
+=========================================================
+1. EVENTS (First place to look)
+=========================================================
+
+What are Events?
+Events are Kubernetes messages that explain what happened
+to a resource.
+
+Common Errors:
+- FailedScheduling
+- FailedMount
+- FailedAttachVolume
+- FailedCreatePodSandBox
+- Back-off restarting container
+- ErrImagePull
+- ImagePullBackOff
+
+Commands:
+kubectl get events
+kubectl get events --sort-by=.metadata.creationTimestamp
+kubectl describe pod <pod>
+
+Example:
+Pod Pending -> Check events -> "0/3 nodes available:
+Insufficient memory."
+
+
+=========================================================
+2. SERVICE AND ENDPOINT ISSUES
+=========================================================
+
+Service sends traffic to Endpoints.
+
+Service
+   |
+   V
+Endpoints
+   |
+   V
+Pods
+
+Common Issues:
+- Service selector mismatch.
+- Pods not Ready.
+- Labels missing.
+- No endpoints available.
+
+Commands:
+kubectl get svc
+kubectl describe svc
+kubectl get endpoints
+
+Example:
+Service selector:
+app=nginx
+
+Pod label:
+app=web
+
+Result:
+No endpoints created.
+
+
+=========================================================
+3. DNS PROBLEMS
+=========================================================
+
+Pods communicate using DNS.
+
+Example:
+mysql.default.svc.cluster.local
+
+Common Issues:
+- Service name cannot resolve.
+- CoreDNS failure.
+- Wrong service name.
+
+Commands:
+kubectl exec -it pod -- nslookup service
+kubectl exec -it pod -- ping service
+kubectl get pods -n kube-system
+
+Check CoreDNS:
+kubectl get pods -n kube-system
+
+
+=========================================================
+4. NETWORK POLICY
+=========================================================
+
+NetworkPolicy controls pod-to-pod communication.
+
+Common Issues:
+- Traffic blocked.
+- Database inaccessible.
+- Microservices cannot communicate.
+
+Commands:
+kubectl get networkpolicy
+kubectl describe networkpolicy
+
+Example:
+Frontend pod cannot access backend pod because
+NetworkPolicy denies traffic.
+
+
+=========================================================
+5. STORAGE ISSUES
+=========================================================
+
+Storage Components:
+
+Application
+    |
+    V
+PVC
+    |
+    V
+PV
+    |
+    V
+StorageClass
+
+Common Issues:
+- PVC Pending.
+- PV unavailable.
+- Wrong StorageClass.
+- Volume attachment failure.
+- CSI driver issues.
+
+Commands:
+kubectl get pvc
+kubectl get pv
+kubectl describe pvc
+kubectl describe pod
+
+
+=========================================================
+6. DEPLOYMENT ISSUES
+=========================================================
+
+Deployment manages ReplicaSets and Pods.
+
+Common Issues:
+- Rollout stuck.
+- Wrong image.
+- Failed deployment.
+- Pod startup failures.
+
+Commands:
+kubectl get deployment
+kubectl describe deployment
+kubectl rollout status deployment/app
+kubectl rollout history deployment/app
+
+Rollback:
+kubectl rollout undo deployment/app
+
+
+=========================================================
+7. REPLICASET ISSUES
+=========================================================
+
+ReplicaSet ensures desired number of pods.
+
+Common Issues:
+- Pod creation failure.
+- Resource shortage.
+- Scheduling failure.
+
+Commands:
+kubectl get rs
+kubectl describe rs
+
+
+=========================================================
+8. CRASHLOOPBACKOFF
+=========================================================
+
+Container starts and crashes repeatedly.
+
+Common Causes:
+- Application bug.
+- Wrong environment variables.
+- Missing Secret.
+- Database unavailable.
+- OOMKilled.
+- Health check failure.
+
+Commands:
+kubectl logs pod
+kubectl logs pod --previous
+kubectl describe pod
+
+Interview Tip:
+Always check previous logs.
+
+
+=========================================================
+9. RESOURCE LIMITS
+=========================================================
+
+Resources:
+- CPU
+- Memory
+
+Common Issues:
+- CPU throttling.
+- Memory exhaustion.
+- OOMKilled.
+
+Commands:
+kubectl top pod
+kubectl top node
+kubectl describe pod
+
+Example:
+Exit Code 137
+Reason:
+OOMKilled.
+
+
+=========================================================
+10. NAMESPACE ISSUES
+=========================================================
+
+Resource exists but in another namespace.
+
+Commands:
+kubectl get all -n namespace
+kubectl config current-context
+
+Example:
+Service in namespace A
+Pod in namespace B
+
+
+=========================================================
+11. RBAC ISSUES
+=========================================================
+
+RBAC controls permissions.
+
+Components:
+- Role
+- ClusterRole
+- RoleBinding
+- ClusterRoleBinding
+
+Common Error:
+Forbidden
+
+Commands:
+kubectl auth can-i
+kubectl get roles
+kubectl get rolebindings
+kubectl get clusterroles
+
+Example:
+User cannot create deployments.
+
+
+=========================================================
+12. INGRESS ISSUES
+=========================================================
+
+Ingress routes external traffic.
+
+Internet
+   |
+   V
+Ingress
+   |
+   V
+Service
+   |
+   V
+Pods
+
+Common Issues:
+- Controller not running.
+- Wrong ingress class.
+- Wrong backend service.
+- TLS issue.
+- DNS issue.
+
+Commands:
+kubectl get ingress
+kubectl describe ingress
+
+
+=========================================================
+13. TLS/CERTIFICATE ISSUES
+=========================================================
+
+Common Issues:
+- Certificate expired.
+- Wrong certificate.
+- TLS handshake failure.
+- Secret missing.
+
+Commands:
+kubectl get secrets
+kubectl describe ingress
+
+
+=========================================================
+14. NODE ISSUES
+=========================================================
+
+Common Problems:
+- NotReady
+- MemoryPressure
+- DiskPressure
+- PIDPressure
+- NetworkUnavailable
+
+Commands:
+kubectl get nodes
+kubectl describe node
+
+Example:
+Node under DiskPressure.
+Pods cannot schedule.
+
+
+=========================================================
+15. EVICTED PODS
+=========================================================
+
+Pod removed due to node resource shortage.
+
+Reasons:
+- Low memory.
+- Low disk.
+
+Commands:
+kubectl describe pod
+
+Example:
+Status:
+Evicted
+
+
+=========================================================
+16. IMAGE PULL SECRET ISSUES
+=========================================================
+
+Private registry authentication failure.
+
+Common Errors:
+ErrImagePull
+ImagePullBackOff
+
+Commands:
+kubectl get secrets
+kubectl describe pod
+
+
+=========================================================
+17. CNI NETWORK ISSUES
+=========================================================
+
+CNI provides pod networking.
+
+Common Problems:
+- Pod IP not assigned.
+- Pods cannot communicate.
+- Cross-node communication failure.
+
+Commands:
+kubectl get pods -n kube-system
+kubectl describe pod
+
+
+=========================================================
+18. CONFIGMAP AND SECRET ISSUES
+=========================================================
+
+Common Issues:
+- Missing ConfigMap.
+- Missing Secret.
+- Wrong key.
+- Invalid values.
+
+Commands:
+kubectl get configmap
+kubectl get secrets
+kubectl describe pod
+
+
+=========================================================
+19. INIT CONTAINER FAILURES
+=========================================================
+
+Init containers must complete before app starts.
+
+Common Issues:
+- Database unavailable.
+- Script failure.
+- Volume mount issue.
+
+Commands:
+kubectl logs pod -c init-container
+kubectl describe pod
+
+
+=========================================================
+20. APPLICATION DEPENDENCY ISSUES
+=========================================================
+
+Application may depend on:
+- Database
+- Redis
+- Kafka
+- External APIs
+
+Common Problems:
+- Dependency unavailable.
+- DNS failure.
+- Authentication failure.
+
+Check:
+Application logs
+Connectivity
+Service endpoints
+
+
+=========================================================
+PRODUCTION TROUBLESHOOTING FLOW
+=========================================================
+
+Application Down
+      |
+      V
+Check Namespace
+      |
+      V
+Check Deployment
+      |
+      V
+Check ReplicaSet
+      |
+      V
+Check Pod Status
+      |
+      V
+Describe Pod
+      |
+      V
+Check Events
+      |
+      V
+Check Logs
+      |
+      V
+Check Init Containers
+      |
+      V
+Check ConfigMaps/Secrets
+      |
+      V
+Check PVC/PV
+      |
+      V
+Check Service
+      |
+      V
+Check Endpoints
+      |
+      V
+Check DNS
+      |
+      V
+Check NetworkPolicy
+      |
+      V
+Check Ingress
+      |
+      V
+Check Node Health
+      |
+      V
+Check Application Dependencies
+      |
+      V
+Rollback if Required
+      |
+      V
+Monitor Recovery
+
+
+=========================================================
+KUBERNETES GOLDEN TROUBLESHOOTING ORDER
+=========================================================
+
+1. Namespace
+2. Deployment
+3. ReplicaSet
+4. Pod
+5. Events
+6. Logs
+7. Init Containers
+8. ConfigMaps
+9. Secrets
+10. PVC/PV
+11. Service
+12. Endpoints
+13. DNS
+14. NetworkPolicy
+15. Ingress
+16. Node
+17. Application
+18. Database/Dependencies
+19. Rollback
+20. Monitor
+
+Memory Trick:
+
+Namespace
+   ↓
+Deployment
+   ↓
+ReplicaSet
+   ↓
+Pod
+   ↓
+Events
+   ↓
+Logs
+   ↓
+Storage
+   ↓
+Service
+   ↓
+Endpoints
+   ↓
+DNS
+   ↓
+Network
+   ↓
+Ingress
+   ↓
+Node
+   ↓
+Application
+   ↓
+Database
+
+This flow closely matches how experienced Kubernetes and
+DevOps engineers troubleshoot production incidents.
