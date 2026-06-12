@@ -1,0 +1,294 @@
+===============================
+KUBERNETES TROUBLESHOOTING NOTES
+===============================
+
+1. POD STUCK IN PENDING (Scheduling Issues)
+-------------------------------------------
+Reason: Scheduler cannot find a suitable node.
+
+Common Causes:
+- Insufficient CPU/Memory resources.
+- PVC is not bound or available.
+- Node has taints and pod has no tolerations.
+- Wrong nodeSelector.
+- Affinity/Anti-affinity rules not satisfied.
+- Namespace ResourceQuota exceeded.
+- Node is NotReady.
+- Maximum pod limit reached on node.
+
+Commands:
+kubectl get pods
+kubectl describe pod <pod-name>
+kubectl get nodes
+kubectl describe node <node-name>
+kubectl get pvc
+kubectl describe quota
+
+
+2. POD STUCK IN CONTAINERCREATING
+---------------------------------
+Reason: Pod is scheduled but container cannot start.
+
+Common Causes:
+- ErrImagePull.
+- ImagePullBackOff.
+- Wrong image name or tag.
+- Private registry authentication issue.
+- Secret not available.
+- ConfigMap not found.
+- Missing environment variables.
+- PVC/Volume mount issues.
+- Init container failure.
+- Storage attachment failure.
+
+Commands:
+kubectl describe pod <pod-name>
+kubectl logs <pod-name> -c <init-container>
+kubectl get secrets
+kubectl get configmap
+kubectl get pvc
+
+
+3. POD RUNNING BUT NOT HEALTHY
+------------------------------
+Reason: Container started but application is failing.
+
+Common Causes:
+- CrashLoopBackOff.
+- OOMKilled.
+- Application crash.
+- Wrong startup command.
+- Readiness probe failure.
+- Liveness probe failure.
+- Startup probe failure.
+- Resource limits too low.
+
+Commands:
+kubectl logs <pod-name>
+kubectl describe pod <pod-name>
+
+
+4. APPLICATION ERRORS
+---------------------
+Reason: Pod is running but application is not working.
+
+Common Causes:
+- Database connection issue.
+- Service selector mismatch.
+- Endpoints not created.
+- DNS resolution failure.
+- NetworkPolicy blocking traffic.
+- Wrong ConfigMap values.
+- Wrong Secret values.
+- External API unavailable.
+- Environment variable issues.
+
+Commands:
+kubectl logs <pod-name>
+kubectl get svc
+kubectl describe svc <service-name>
+kubectl get endpoints
+kubectl exec -it <pod-name> -- sh
+
+
+5. SERVICE ISSUES
+-----------------
+Reason: Traffic is not reaching the pods.
+
+Common Causes:
+- Selector mismatch.
+- TargetPort mismatch.
+- Service port mismatch.
+- No endpoints.
+- Backend pods not Ready.
+
+Commands:
+kubectl get svc
+kubectl describe svc <service-name>
+kubectl get endpoints
+
+
+6. INGRESS ISSUES
+-----------------
+Reason: External traffic cannot reach the application.
+
+Common Causes:
+- Ingress controller not running.
+- Wrong ingress class.
+- Incorrect path rules.
+- TLS certificate issue.
+- DNS configuration problem.
+- LoadBalancer not provisioned.
+
+Commands:
+kubectl get ingress
+kubectl describe ingress <ingress-name>
+kubectl get pods -n ingress-nginx
+
+
+7. NODE ISSUES
+--------------
+Reason: Worker node problems.
+
+Common Causes:
+- Node NotReady.
+- Memory pressure.
+- Disk pressure.
+- PID pressure.
+- Network unavailable.
+- Kubelet stopped.
+- Container runtime failure.
+
+Commands:
+kubectl get nodes
+kubectl describe node <node-name>
+
+
+8. COMMON POD STATUS ERRORS
+---------------------------
+Pending:
+- Waiting for scheduling.
+
+ContainerCreating:
+- Pulling image or mounting volumes.
+
+Running:
+- Application is running.
+
+CrashLoopBackOff:
+- Application keeps crashing.
+
+ImagePullBackOff:
+- Cannot pull container image.
+
+ErrImagePull:
+- Image not found or authentication issue.
+
+OOMKilled:
+- Container exceeded memory limit.
+
+Completed:
+- Job finished successfully.
+
+Terminating:
+- Pod is shutting down.
+
+
+9. COMMON KUBERNETES COMMANDS
+-----------------------------
+Check pods:
+kubectl get pods
+
+Describe pod:
+kubectl describe pod <pod-name>
+
+View logs:
+kubectl logs <pod-name>
+
+View previous logs:
+kubectl logs <pod-name> --previous
+
+Execute inside pod:
+kubectl exec -it <pod-name> -- sh
+
+Check services:
+kubectl get svc
+
+Check endpoints:
+kubectl get endpoints
+
+Check ingress:
+kubectl get ingress
+
+Check nodes:
+kubectl get nodes
+
+Check PVC:
+kubectl get pvc
+
+Check ConfigMaps:
+kubectl get configmap
+
+Check Secrets:
+kubectl get secrets
+
+Check events:
+kubectl get events
+
+Check namespace quotas:
+kubectl describe quota
+
+
+==========================================
+PRODUCTION TROUBLESHOOTING FLOW (INTERVIEW)
+==========================================
+
+If an application is down:
+
+Step 1:
+Check pod status.
+kubectl get pods
+
+Step 2:
+Describe the pod.
+kubectl describe pod <pod-name>
+
+Step 3:
+Check logs.
+kubectl logs <pod-name>
+
+Step 4:
+Check cluster events.
+kubectl get events
+
+Step 5:
+Verify PVCs.
+kubectl get pvc
+
+Step 6:
+Verify Service and Endpoints.
+kubectl get svc
+kubectl get endpoints
+
+Step 7:
+Verify Ingress or LoadBalancer.
+kubectl get ingress
+
+Step 8:
+Check node health.
+kubectl get nodes
+kubectl describe node <node-name>
+
+Step 9:
+Verify ConfigMaps and Secrets.
+kubectl get configmap
+kubectl get secrets
+
+Step 10:
+Verify application connectivity and database connections.
+
+
+===================================
+EASY INTERVIEW MEMORY TRICK
+===================================
+
+Scheduler
+    ↓
+Container
+    ↓
+Pod
+    ↓
+Service
+    ↓
+Ingress
+    ↓
+Node
+    ↓
+Application
+    ↓
+Database
+
+Remember:
+"Scheduler → Container → Pod → Service → Ingress → Node → Application → Database"
+
+This is the order most production Kubernetes troubleshooting follows and is a strong framework for DevOps interviews.
